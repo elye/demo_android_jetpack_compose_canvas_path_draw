@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Slider
+import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
@@ -21,13 +23,14 @@ import androidx.compose.ui.unit.dp
 fun DrawPathArc() {
     val configuration = LocalConfiguration.current
     val width = configuration.screenWidthDp.dp - 32.dp
+    val height = 200.dp
     var x1Position by remember { mutableStateOf(0f) }
     var y1Position by remember { mutableStateOf(0f) }
-    var x2Position by remember { mutableStateOf(0f) }
-    var y2Position by remember { mutableStateOf(0f) }
+    var x2Position by remember(width) { mutableStateOf(width.value) }
+    var y2Position by remember(height) { mutableStateOf(height.value) }
     var startAngle by remember { mutableStateOf(0f) }
-    var sweepAngle by remember { mutableStateOf(0f) }
-    val height = 200.dp
+    var sweepAngle by remember { mutableStateOf(180f) }
+    var fill by remember { mutableStateOf(true) }
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -48,7 +51,7 @@ fun DrawPathArc() {
                     startAngle, sweepAngle, true
                 )
             }, Color.Black,
-                style = Stroke(2.dp.value)
+                style = if (fill) Fill else Stroke(2.dp.value)
             )
 
             drawPoints(
@@ -104,5 +107,9 @@ fun DrawPathArc() {
                 sweepAngle = it
             }
         )
+        Row {
+            Text(text = "Fill: $fill")
+            Switch(checked = fill, onCheckedChange = {fill = it})
+        }
     }
 }
