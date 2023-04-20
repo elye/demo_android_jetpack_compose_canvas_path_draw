@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.drawpath.MainDestinations.DRAWCUBICSCREEN
 import com.example.drawpath.MainDestinations.DRAWPATHMOVETOSCREEN
 import com.example.drawpath.MainDestinations.DRAWPATHSCREEN
+import com.example.drawpath.MainDestinations.DRAWQUADSCREEN
 import com.example.drawpath.MainDestinations.MAINSCREEN
 import com.example.drawpath.ui.theme.DrawPathTheme
 
@@ -47,6 +48,7 @@ object MainDestinations {
     const val DRAWPATHSCREEN = "drawpathscreen"
     const val DRAWPATHMOVETOSCREEN = "drawpathmovetoscreen"
     const val DRAWCUBICSCREEN = "drawcubicscreen"
+    const val DRAWQUADSCREEN = "drawquadscreen"
 }
 
 @Composable
@@ -69,6 +71,9 @@ fun NavGraph(startDestination: String = MAINSCREEN) {
         composable(DRAWCUBICSCREEN) {
             DrawPathCubic()
         }
+        composable(DRAWQUADSCREEN) {
+            DrawPathQuad()
+        }
     }
 }
 
@@ -84,6 +89,9 @@ class MainActions(navController: NavHostController) {
     }
     val drawPathCubicScreen: () -> Unit = {
         navController.navigate(DRAWCUBICSCREEN)
+    }
+    val drawPathQuadScreen: () -> Unit = {
+        navController.navigate(DRAWQUADSCREEN)
     }
     val upPress: () -> Unit = {
         navController.navigateUp()
@@ -109,6 +117,10 @@ fun MainScreen(actions: MainActions) {
                 onClick = { actions.drawPathCubicScreen() },
                 title = "Draw Cubic"
             )
+            MyButton(
+                onClick = { actions.drawPathQuadScreen() },
+                title = "Draw Quadratic Bezier"
+            )
         }
     }
 }
@@ -124,5 +136,4 @@ fun ColumnScope.MyButton(onClick: () -> Unit, title: String) {
     ) {
         Text(title)
     }
-
 }

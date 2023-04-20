@@ -20,18 +20,16 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 @Composable
-fun DrawPathCubic() {
+fun DrawPathQuad() {
     val configuration = LocalConfiguration.current
     val width = configuration.screenWidthDp.dp - 32.dp
     val height = 200.dp
     var x0Position by remember { mutableStateOf(0f) }
     var y0Position by remember { mutableStateOf(height.value) }
-    var x1Position by remember { mutableStateOf(0f) }
+    var x1Position by remember { mutableStateOf(width.value/2) }
     var y1Position by remember { mutableStateOf(0f) }
     var x2Position by remember(width) { mutableStateOf(width.value) }
-    var y2Position by remember(height) { mutableStateOf(0f) }
-    var x3Position by remember(width) { mutableStateOf(width.value) }
-    var y3Position by remember(height) { mutableStateOf(height.value) }
+    var y2Position by remember(height) { mutableStateOf(height.value) }
     var fill by remember { mutableStateOf(true) }
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -46,10 +44,9 @@ fun DrawPathCubic() {
             drawPath(
                 Path().apply {
                     moveTo(x0Position.dp.toPx(), y0Position.dp.toPx())
-                    cubicTo(
+                    quadraticBezierTo(
                         x1Position.dp.toPx(), y1Position.dp.toPx(),
                         x2Position.dp.toPx(), y2Position.dp.toPx(),
-                        x3Position.dp.toPx(), y3Position.dp.toPx()
                     )
                 }, Color.Black,
                 style = if (fill) Fill else Stroke(2.dp.value)
@@ -60,7 +57,6 @@ fun DrawPathCubic() {
                     Offset(x0Position.dp.toPx(), y0Position.dp.toPx()),
                     Offset(x1Position.dp.toPx(), y1Position.dp.toPx()),
                     Offset(x2Position.dp.toPx(), y2Position.dp.toPx()),
-                    Offset(x3Position.dp.toPx(), y3Position.dp.toPx())
                 ),
                 PointMode.Points,
                 Color.Red,
@@ -125,26 +121,6 @@ fun DrawPathCubic() {
                     valueRange = 0f..height.value,
                     onValueChange = {
                         y2Position = it
-                    }
-                )
-            }
-        }
-        Row {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "X3: ${x3Position.roundToInt()}")
-                Slider(value = x3Position,
-                    valueRange = 0f..width.value,
-                    onValueChange = {
-                        x3Position = it
-                    }
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Y3: ${y3Position.roundToInt()}")
-                Slider(value = y3Position,
-                    valueRange = 0f..height.value,
-                    onValueChange = {
-                        y3Position = it
                     }
                 )
             }
