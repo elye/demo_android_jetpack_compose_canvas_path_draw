@@ -47,8 +47,8 @@ object MainDestinations {
     const val MAINSCREEN = "mainscreen"
     const val DRAWPATHSCREEN = "drawpathscreen"
     const val DRAWPATHMOVETOSCREEN = "drawpathmovetoscreen"
-    const val DRAWCUBICSCREEN = "drawcubicscreen"
     const val DRAWQUADSCREEN = "drawquadscreen"
+    const val DRAWCUBICSCREEN = "drawcubicscreen"
 }
 
 @Composable
@@ -68,11 +68,11 @@ fun NavGraph(startDestination: String = MAINSCREEN) {
         composable(DRAWPATHMOVETOSCREEN) {
             DrawPathArcMoveTo()
         }
-        composable(DRAWCUBICSCREEN) {
-            DrawPathCubic()
-        }
         composable(DRAWQUADSCREEN) {
             DrawPathQuad()
+        }
+        composable(DRAWCUBICSCREEN) {
+            DrawPathCubic()
         }
     }
 }
@@ -87,11 +87,11 @@ class MainActions(navController: NavHostController) {
     val drawPathMoveToScreen: () -> Unit = {
         navController.navigate(DRAWPATHMOVETOSCREEN)
     }
-    val drawPathCubicScreen: () -> Unit = {
-        navController.navigate(DRAWCUBICSCREEN)
-    }
     val drawPathQuadScreen: () -> Unit = {
         navController.navigate(DRAWQUADSCREEN)
+    }
+    val drawPathCubicScreen: () -> Unit = {
+        navController.navigate(DRAWCUBICSCREEN)
     }
     val upPress: () -> Unit = {
         navController.navigateUp()
@@ -114,12 +114,12 @@ fun MainScreen(actions: MainActions) {
                 title = "Draw Path Move To"
             )
             MyButton(
-                onClick = { actions.drawPathCubicScreen() },
-                title = "Draw Cubic"
-            )
-            MyButton(
                 onClick = { actions.drawPathQuadScreen() },
                 title = "Draw Quadratic Bezier"
+            )
+            MyButton(
+                onClick = { actions.drawPathCubicScreen() },
+                title = "Draw Cubic"
             )
         }
     }
