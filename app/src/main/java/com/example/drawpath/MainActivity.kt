@@ -19,6 +19,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.drawpath.MainDestinations.DRAWCPOINTSSCREEN
 import com.example.drawpath.MainDestinations.DRAWCUBICEXPLAINSCREEN
 import com.example.drawpath.MainDestinations.DRAWCUBICSCREEN
 import com.example.drawpath.MainDestinations.DRAWPATHMOVETOSCREEN
@@ -53,6 +54,7 @@ object MainDestinations {
     const val DRAWQUADEXPLAINSCREEN = "drawquadexplainscreen"
     const val DRAWCUBICSCREEN = "drawcubicscreen"
     const val DRAWCUBICEXPLAINSCREEN = "drawcubicexplainscreen"
+    const val DRAWCPOINTSSCREEN = "drawpointsscreen"
 }
 
 @Composable
@@ -84,6 +86,9 @@ fun NavGraph(startDestination: String = MAINSCREEN) {
         composable(DRAWCUBICEXPLAINSCREEN) {
             DrawPathCubicExplain()
         }
+        composable(DRAWCPOINTSSCREEN) {
+            DrawPointsLine()
+        }
     }
 }
 
@@ -108,6 +113,9 @@ class MainActions(navController: NavHostController) {
     }
     val drawPathCubicExplainScreen: () -> Unit = {
         navController.navigate(DRAWCUBICEXPLAINSCREEN)
+    }
+    val drawPointsScreen: () -> Unit = {
+        navController.navigate(DRAWCPOINTSSCREEN)
     }
     val upPress: () -> Unit = {
         navController.navigateUp()
@@ -144,6 +152,10 @@ fun MainScreen(actions: MainActions) {
             MyButton(
                 onClick = { actions.drawPathCubicExplainScreen() },
                 title = "Draw Cubic Explain"
+            )
+            MyButton(
+                onClick = { actions.drawPointsScreen() },
+                title = "Draw Points Line"
             )
         }
     }
