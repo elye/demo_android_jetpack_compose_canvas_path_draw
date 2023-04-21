@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.drawpath.MainDestinations.DRAWCUBICSCREEN
 import com.example.drawpath.MainDestinations.DRAWPATHMOVETOSCREEN
 import com.example.drawpath.MainDestinations.DRAWPATHSCREEN
+import com.example.drawpath.MainDestinations.DRAWQUADEXPLAINSCREEN
 import com.example.drawpath.MainDestinations.DRAWQUADSCREEN
 import com.example.drawpath.MainDestinations.MAINSCREEN
 import com.example.drawpath.ui.theme.DrawPathTheme
@@ -48,6 +49,7 @@ object MainDestinations {
     const val DRAWPATHSCREEN = "drawpathscreen"
     const val DRAWPATHMOVETOSCREEN = "drawpathmovetoscreen"
     const val DRAWQUADSCREEN = "drawquadscreen"
+    const val DRAWQUADEXPLAINSCREEN = "drawquadexplainscreen"
     const val DRAWCUBICSCREEN = "drawcubicscreen"
 }
 
@@ -71,6 +73,9 @@ fun NavGraph(startDestination: String = MAINSCREEN) {
         composable(DRAWQUADSCREEN) {
             DrawPathQuad()
         }
+        composable(DRAWQUADEXPLAINSCREEN) {
+            DrawPathQuadExplain()
+        }
         composable(DRAWCUBICSCREEN) {
             DrawPathCubic()
         }
@@ -89,6 +94,9 @@ class MainActions(navController: NavHostController) {
     }
     val drawPathQuadScreen: () -> Unit = {
         navController.navigate(DRAWQUADSCREEN)
+    }
+    val drawPathQuadExplainScreen: () -> Unit = {
+        navController.navigate(DRAWQUADEXPLAINSCREEN)
     }
     val drawPathCubicScreen: () -> Unit = {
         navController.navigate(DRAWCUBICSCREEN)
@@ -116,6 +124,10 @@ fun MainScreen(actions: MainActions) {
             MyButton(
                 onClick = { actions.drawPathQuadScreen() },
                 title = "Draw Quadratic Bezier"
+            )
+            MyButton(
+                onClick = { actions.drawPathQuadExplainScreen() },
+                title = "Draw Quadratic Bezier Explain"
             )
             MyButton(
                 onClick = { actions.drawPathCubicScreen() },
