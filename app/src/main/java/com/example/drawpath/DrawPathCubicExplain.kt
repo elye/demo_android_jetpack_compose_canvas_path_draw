@@ -19,17 +19,19 @@ import androidx.compose.ui.unit.lerp
 import kotlin.math.roundToInt
 
 @Composable
-fun DrawPathQuadExplain() {
+fun DrawPathCubicExplain() {
     val configuration = LocalConfiguration.current
     val width = configuration.screenWidthDp.dp - 32.dp
     val height = 200.dp
 
     var x0Position by remember { mutableStateOf(0f) }
     var y0Position by remember { mutableStateOf(height.value) }
-    var x1Position by remember { mutableStateOf(width.value/2) }
+    var x1Position by remember { mutableStateOf(0f) }
     var y1Position by remember { mutableStateOf(0f) }
     var x2Position by remember(width) { mutableStateOf(width.value) }
-    var y2Position by remember(height) { mutableStateOf(height.value) }
+    var y2Position by remember(height) { mutableStateOf(0f) }
+    var x3Position by remember(width) { mutableStateOf(width.value) }
+    var y3Position by remember(height) { mutableStateOf(height.value) }
 
     var position by remember { mutableStateOf(0f) }
 
@@ -50,24 +52,47 @@ fun DrawPathQuadExplain() {
                 Offset(x1Position.dp.toPx(), y1Position.dp.toPx()),
                 Offset(x2Position.dp.toPx(), y2Position.dp.toPx())
             )
+            drawLine(Color.Gray,
+                Offset(x2Position.dp.toPx(), y2Position.dp.toPx()),
+                Offset(x3Position.dp.toPx(), y3Position.dp.toPx())
+            )
 
             val lerpPointX1 = lerp(x0Position.dp, x1Position.dp, position)
             val lerpPointY1 = lerp(y0Position.dp, y1Position.dp, position)
             val lerpPointX2 = lerp(x1Position.dp, x2Position.dp, position)
             val lerpPointY2 = lerp(y1Position.dp, y2Position.dp, position)
+            val lerpPointX3 = lerp(x2Position.dp, x3Position.dp, position)
+            val lerpPointY3 = lerp(y2Position.dp, y3Position.dp, position)
 
-            val lerpQuadPointX = lerp(lerpPointX1, lerpPointX2, position)
-            val lerpQuadPointY = lerp(lerpPointY1, lerpPointY2, position)
+            val lerpQuadPointX1 = lerp(lerpPointX1, lerpPointX2, position)
+            val lerpQuadPointY1 = lerp(lerpPointY1, lerpPointY2, position)
+
+            val lerpQuadPointX2 = lerp(lerpPointX2, lerpPointX3, position)
+            val lerpQuadPointY2 = lerp(lerpPointY2, lerpPointY3, position)
+
+            val lerpCubicPointX = lerp(lerpQuadPointX1, lerpQuadPointX2, position)
+            val lerpCubicPointY = lerp(lerpQuadPointY1, lerpQuadPointY2, position)
+
+
             drawLine(Color.Black,
                 Offset(lerpPointX1.toPx(), lerpPointY1.toPx()),
                 Offset(lerpPointX2.toPx(), lerpPointY2.toPx()))
 
+            drawLine(Color.Black,
+                Offset(lerpPointX2.toPx(), lerpPointY2.toPx()),
+                Offset(lerpPointX3.toPx(), lerpPointY3.toPx()))
+
+            drawLine(Color.Black,
+                Offset(lerpQuadPointX1.toPx(), lerpQuadPointY1.toPx()),
+                Offset(lerpQuadPointX2.toPx(), lerpQuadPointY2.toPx()))
+
             drawPath(
                 Path().apply {
                     moveTo(x0Position.dp.toPx(), y0Position.dp.toPx())
-                    quadraticBezierTo(
+                    cubicTo(
                         lerpPointX1.toPx(), lerpPointY1.toPx(),
-                        lerpQuadPointX.toPx(), lerpQuadPointY.toPx(),
+                        lerpQuadPointX1.toPx(), lerpQuadPointY1.toPx(),
+                        lerpCubicPointX.toPx(), lerpCubicPointY.toPx(),
                     )
                 }, Color.Red,
                 style = Stroke(4.dp.value)
@@ -78,6 +103,7 @@ fun DrawPathQuadExplain() {
                     Offset(x0Position.dp.toPx(), y0Position.dp.toPx()),
                     Offset(x1Position.dp.toPx(), y1Position.dp.toPx()),
                     Offset(x2Position.dp.toPx(), y2Position.dp.toPx()),
+                    Offset(x3Position.dp.toPx(), y3Position.dp.toPx()),
                 ),
                 PointMode.Points,
                 Color.Gray,
@@ -88,7 +114,10 @@ fun DrawPathQuadExplain() {
             drawPoints(
                 listOf(
                     Offset(lerpPointX1.toPx(), lerpPointY1.toPx()),
-                    Offset(lerpPointX2.toPx(), lerpPointY2.toPx())
+                    Offset(lerpPointX2.toPx(), lerpPointY2.toPx()),
+                    Offset(lerpPointX3.toPx(), lerpPointY3.toPx()),
+                    Offset(lerpQuadPointX1.toPx(), lerpQuadPointY1.toPx()),
+                    Offset(lerpQuadPointX2.toPx(), lerpQuadPointY2.toPx())
                 ),
                 PointMode.Points,
                 Color.Black,
@@ -98,7 +127,7 @@ fun DrawPathQuadExplain() {
 
             drawPoints(
                 listOf(
-                    Offset(lerpQuadPointX.toPx(), lerpQuadPointY.toPx())
+                    Offset(lerpCubicPointX.toPx(), lerpCubicPointY.toPx()),
                 ),
                 PointMode.Points,
                 Color.Red,
@@ -172,6 +201,26 @@ fun DrawPathQuadExplain() {
                     valueRange = 0f..height.value,
                     onValueChange = {
                         y2Position = it
+                    }
+                )
+            }
+        }
+        Row {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "X3: ${x3Position.roundToInt()}")
+                Slider(value = x3Position,
+                    valueRange = 0f..width.value,
+                    onValueChange = {
+                        x3Position = it
+                    }
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Y3: ${y3Position.roundToInt()}")
+                Slider(value = y3Position,
+                    valueRange = 0f..height.value,
+                    onValueChange = {
+                        y3Position = it
                     }
                 )
             }
