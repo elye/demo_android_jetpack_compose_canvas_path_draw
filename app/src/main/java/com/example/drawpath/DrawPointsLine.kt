@@ -1,19 +1,16 @@
 package com.example.drawpath
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement.Absolute.Center
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.RadioButton
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -36,6 +33,7 @@ fun DrawPointsLine() {
     val radioOptions = listOf(LINE, QUAD, CUBIC)
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(radioOptions[1]) }
     var points by remember { mutableStateOf(listOf<Offset>()) }
+    var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -48,7 +46,10 @@ fun DrawPointsLine() {
             .background(Color.Yellow)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = { points = points + Offset(it.x, it.y) },
+                    onPress = {
+                        points = points + Offset(it.x, it.y);
+                        nextPoints = listOf()
+                    },
                     onDoubleTap = { /* Called on Double Tap */ },
                     onLongPress = { /* Called on Long Press */ },
                     onTap = { /* Called on Tap */ })
@@ -67,30 +68,26 @@ fun DrawPointsLine() {
                             when (selectedOption) {
                                 LINE -> lineTo(item.x, item.y)
                                 QUAD -> {
+                                    val pointX1 = points[index - 1].x
+                                    val pointY1 = points[index - 1].y
+                                    val pointX2: Float
+                                    val pointY2: Float
+
                                     if (index == points.size - 1) {
-                                        quadraticBezierTo(
-                                            points.get(index - 1).x,
-                                            points.get(index - 1).y,
-                                             item.x, item.y
-                                        )
+                                        pointX2 = item.x
+                                        pointY2 = item.y
                                     } else {
-                                        quadraticBezierTo(
-                                            points.get(index - 1).x,
-                                            points.get(index - 1).y,
-                                            (points.get(index - 1).x + item.x) / 2,
-                                            (points.get(index - 1).y + item.y) / 2,
-                                        )
+                                        pointX2 = (points[index - 1].x + item.x) / 2
+                                        pointY2 = (points[index - 1].y + item.y) / 2
                                     }
+                                    quadraticBezierTo(pointX1, pointY1, pointX2, pointY2)
                                 }
                                 CUBIC -> {
                                     cubicTo(
-                                        (points.get(index - 1).x + item.x) / 2,
-                                        points.get(index - 1).y,
-                                        (points.get(index - 1).x + item.x) / 2,
-                                        item.y,
+                                        (points[index - 1].x + item.x) / 2, points[index - 1].y,
+                                        (points[index - 1].x + item.x) / 2, item.y,
                                         item.x, item.y
                                     )
-
                                 }
                             }
                         }
@@ -107,11 +104,32 @@ fun DrawPointsLine() {
             )
         }
 
-        Button(onClick = {
-            points = listOf()
-        }) {
-
-            Text("Clear Path")
+        Row {
+            Spacer(Modifier.weight(1f))
+            Button(enabled = points.isNotEmpty(),
+                onClick = {
+                    points = listOf()
+                    nextPoints = listOf()
+                }) {
+                Text("Clear Path")
+            }
+            Spacer(Modifier.weight(1f))
+            Button(enabled = points.isNotEmpty(),
+                onClick = {
+                    nextPoints = nextPoints + points.last()
+                    points = points.dropLast(1)
+                }) {
+                Text("Undo")
+            }
+            Spacer(Modifier.weight(1f))
+            Button(enabled = nextPoints.isNotEmpty(),
+                onClick = {
+                    points = points + nextPoints.last()
+                    nextPoints = nextPoints.dropLast(1)
+                }) {
+                Text("Redo")
+            }
+            Spacer(Modifier.weight(1f))
         }
         Column {
             radioOptions.forEach { text ->
