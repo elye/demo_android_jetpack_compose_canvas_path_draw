@@ -68,19 +68,20 @@ fun DrawPointsLine() {
                             when (selectedOption) {
                                 LINE -> lineTo(item.x, item.y)
                                 QUAD -> {
-                                    val pointX1 = points[index - 1].x
-                                    val pointY1 = points[index - 1].y
-                                    val pointX2: Float
-                                    val pointY2: Float
-
                                     if (index == points.size - 1) {
-                                        pointX2 = item.x
-                                        pointY2 = item.y
+                                        quadraticBezierTo(
+                                            points[index - 1].x,
+                                            points[index - 1].y,
+                                            item.x, item.y
+                                        )
                                     } else {
-                                        pointX2 = (points[index - 1].x + item.x) / 2
-                                        pointY2 = (points[index - 1].y + item.y) / 2
+                                        quadraticBezierTo(
+                                            points[index - 1].x,
+                                            points[index - 1].y,
+                                            (points[index - 1].x + item.x) / 2,
+                                            (points[index - 1].y + item.y) / 2
+                                        )
                                     }
-                                    quadraticBezierTo(pointX1, pointY1, pointX2, pointY2)
                                 }
                                 CUBIC -> {
                                     cubicTo(
@@ -90,57 +91,47 @@ fun DrawPointsLine() {
                                     )
                                 }
                                 HYBRID -> {
-                                    val pointX1 = points[index - 1].x
-                                    val pointY1 = points[index - 1].y
-                                    val pointX2: Float
-                                    val pointY2: Float
+                                    var prevPointDyDx: Float? = null
+                                    var nextPointDyDx: Float? = null
+                                    val currentPointDyDx = dydx(
+                                        points[index - 1].x, points[index - 1].y,
+                                        item.x, item.y
+                                    )
 
-                                    if (index == points.size - 1) {
-                                        pointX2 = item.x
-                                        pointY2 = item.y
-                                        quadraticBezierTo(pointX1, pointY1, pointX2, pointY2)
+                                    if (index > 1) {
+                                        prevPointDyDx = dydx(
+                                            points[index - 1].x, points[index - 1].y,
+                                            points[index - 2].x, points[index - 2].y,
+                                        )
+                                    }
+
+                                    if (index < points.size - 1) {
+                                        nextPointDyDx = dydx(
+                                            points[index + 1].x, points[index + 1].y,
+                                            item.x, item.y
+                                        )
+                                    }
+
+                                    if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
+                                        cubicTo(
+                                            (points[index - 1].x + item.x) / 2, points[index - 1].y,
+                                            (points[index - 1].x + item.x) / 2, item.y,
+                                            item.x, item.y
+                                        )
                                     } else {
-                                        if (index == 1) {
-                                            pointX2 = (points[index - 1].x + item.x) / 2
-                                            pointY2 = (points[index - 1].y + item.y) / 2
-                                            quadraticBezierTo(pointX1, pointY1, pointX2, pointY2)
+                                        if (index == points.size - 1) {
+                                            quadraticBezierTo(
+                                                points[index - 1].x,
+                                                points[index - 1].y,
+                                                item.x, item.y
+                                            )
                                         } else {
-                                            val prevPointDyDx =
-                                                (points[index - 2].y - points[index - 1].y) /
-                                                        (points[index - 2].x - points[index - 1].x)
-                                            val currentPointDyDx =
-                                                (points[index - 1].y - item.y) /
-                                                        (points[index - 1].x - item.x)
-                                            val nextPointDyDx =
-                                                (points[index + 1].y - item.y) /
-                                                        (points[index + 1].x - item.x)
-
-                                            if ((currentPointDyDx > 0 && nextPointDyDx < 0 && prevPointDyDx < 0) ||
-                                                (currentPointDyDx < 0 && nextPointDyDx > 0 && prevPointDyDx > 0)
-                                            ) {
-                                                cubicTo(
-                                                    (points[index - 1].x + item.x) / 2,
-                                                    points[index - 1].y,
-                                                    (points[index - 1].x + item.x) / 2,
-                                                    item.y,
-                                                    item.x,
-                                                    item.y
-                                                )
-                                            } else {
-                                                val pointX1 = points[index - 1].x
-                                                val pointY1 = points[index - 1].y
-                                                val pointX2: Float =
-                                                    (points[index - 1].x + item.x) / 2
-                                                val pointY2: Float =
-                                                    (points[index - 1].y + item.y) / 2
-
-                                                quadraticBezierTo(
-                                                    pointX1,
-                                                    pointY1,
-                                                    pointX2,
-                                                    pointY2
-                                                )
-                                            }
+                                            quadraticBezierTo(
+                                                points[index - 1].x,
+                                                points[index - 1].y,
+                                                (points[index - 1].x + item.x) / 2,
+                                                (points[index - 1].y + item.y) / 2
+                                            )
                                         }
                                     }
                                 }
@@ -213,4 +204,23 @@ fun DrawPointsLine() {
             }
         }
     }
+}
+
+fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx: Float?): Boolean {
+    return if (prevPointDyDx == null) {
+        if (nextPointDyDx == null) {
+            false
+        } else {
+            (currentPointDyDx > 0 && nextPointDyDx < 0) || (currentPointDyDx < 0 && nextPointDyDx > 0)
+        }
+    } else if (nextPointDyDx == null) {
+        (currentPointDyDx > 0 && prevPointDyDx < 0) || (currentPointDyDx < 0 && prevPointDyDx > 0)
+    } else {
+        (currentPointDyDx > 0 && prevPointDyDx < 0 && nextPointDyDx < 0) ||
+                (currentPointDyDx < 0 && prevPointDyDx > 0 && nextPointDyDx > 0)
+    }
+}
+
+private fun dydx(x1: Float, y1: Float, x2: Float, y2: Float): Float {
+    return (x2 - x1) / (y2 - y1)
 }
