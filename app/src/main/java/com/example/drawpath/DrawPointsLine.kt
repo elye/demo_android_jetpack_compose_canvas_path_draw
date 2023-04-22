@@ -29,8 +29,9 @@ fun DrawPointsLine() {
     val LINE = "Line"
     val QUAD = "Quad"
     val CUBIC = "Cubic"
+    val CUBICFORWARD = "Cubic Forward"
     val height = 200.dp
-    val radioOptions = listOf(LINE, QUAD, CUBIC)
+    val radioOptions = listOf(LINE, QUAD, CUBIC, CUBICFORWARD)
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(radioOptions[1]) }
     var points by remember { mutableStateOf(listOf<Offset>()) }
     var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
@@ -89,6 +90,47 @@ fun DrawPointsLine() {
                                         item.x, item.y
                                     )
                                 }
+                                CUBICFORWARD -> {
+                                    if (index == points.size - 1 || index == 1) {
+
+                                        cubicTo(
+                                            (points[index - 1].x + item.x) / 2, points[index - 1].y,
+                                            (points[index - 1].x + item.x) / 2, item.y,
+                                            item.x, item.y
+                                        )
+                                    } else {
+                                        val prevPointDyDx =
+                                            (points[index - 2].y - points[index - 1].y) /
+                                                    (points[index - 2].x - points[index - 1].x)
+                                        val currentPointDyDx =
+                                            (points[index - 1].y - item.y) /
+                                                    (points[index - 1].x - item.x)
+                                        val nextPointDyDx =
+                                            (points[index + 1].y - item.y) /
+                                                    (points[index + 1].x - item.x)
+
+                                        if ((currentPointDyDx > 0 && nextPointDyDx < 0 && prevPointDyDx < 0) ||
+                                            (currentPointDyDx < 0 && nextPointDyDx > 0 && prevPointDyDx > 0)
+                                        ) {
+                                            cubicTo(
+                                                (points[index - 1].x + item.x) / 2,
+                                                points[index - 1].y,
+                                                (points[index - 1].x + item.x) / 2,
+                                                item.y,
+                                                item.x,
+                                                item.y
+                                            )
+                                        } else {
+                                            val pointX1 = points[index - 1].x
+                                            val pointY1 = points[index - 1].y
+                                            val pointX2: Float = (points[index - 1].x + item.x) / 2
+                                            val pointY2: Float = (points[index - 1].y + item.y) / 2
+
+                                            quadraticBezierTo(pointX1, pointY1, pointX2, pointY2)
+                                        }
+
+                                    }
+                                }
                             }
                         }
                     }
@@ -108,8 +150,8 @@ fun DrawPointsLine() {
             Spacer(Modifier.weight(1f))
             Button(enabled = points.isNotEmpty(),
                 onClick = {
+                    nextPoints = nextPoints + points.reversed()
                     points = listOf()
-                    nextPoints = listOf()
                 }) {
                 Text("Clear Path")
             }
