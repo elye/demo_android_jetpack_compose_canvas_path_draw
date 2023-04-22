@@ -29,8 +29,9 @@ fun DrawPointsLine() {
     val QUAD = "Quad"
     val CUBIC = "Cubic"
     val HYBRID = "Hybrid"
+    val HYBRIDEND = "Hybrid End"
     val height = 200.dp
-    val radioOptions = listOf(LINE, QUAD, CUBIC, HYBRID)
+    val radioOptions = listOf(LINE, QUAD, CUBIC, HYBRID, HYBRIDEND)
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(radioOptions[1]) }
     var points by remember { mutableStateOf(listOf<Offset>()) }
     var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
@@ -59,7 +60,6 @@ fun DrawPointsLine() {
             modifier = drawModifier
         ) {
             drawPath(
-
                 Path().apply {
                     points.forEachIndexed { index, item ->
                         if (index == 0) {
@@ -93,37 +93,10 @@ fun DrawPointsLine() {
                                     )
                                 }
                                 HYBRID -> {
-                                    val prevPointDyDx: Float?
-                                    val nextPointDyDx: Float?
-                                    val currentPointDyDx: Float
-
-                                    val triple = extractDyDx(points, index, item)
-                                    currentPointDyDx = triple.first
-                                    nextPointDyDx = triple.second
-                                    prevPointDyDx = triple.third
-
-                                    if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
-                                        cubicTo(
-                                            (points[index - 1].x + item.x) / 2, points[index - 1].y,
-                                            (points[index - 1].x + item.x) / 2, item.y,
-                                            item.x, item.y
-                                        )
-                                    } else {
-                                        if (shouldDrawQuadEnd(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
-                                            quadraticBezierTo(
-                                                points[index - 1].x,
-                                                points[index - 1].y,
-                                                item.x, item.y
-                                            )
-                                        } else {
-                                            quadraticBezierTo(
-                                                points[index - 1].x,
-                                                points[index - 1].y,
-                                                (points[index - 1].x + item.x) / 2,
-                                                (points[index - 1].y + item.y) / 2
-                                            )
-                                        }
-                                    }
+                                    hybridDraw(points, index, item, false)
+                                }
+                                HYBRIDEND -> {
+                                    hybridDraw(points, index, item, true)
                                 }
                             }
                         }
@@ -192,6 +165,49 @@ fun DrawPointsLine() {
                     )
                 }
             }
+        }
+    }
+}
+
+private fun Path.hybridDraw(
+    points: List<Offset>,
+    index: Int,
+    item: Offset,
+    cubeEndCondition: Boolean
+) {
+    val prevPointDyDx: Float?
+    val nextPointDyDx: Float?
+    val currentPointDyDx: Float
+
+    val triple = extractDyDx(points, index, item)
+    currentPointDyDx = triple.first
+    nextPointDyDx = triple.second
+    prevPointDyDx = triple.third
+
+    if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
+        cubicTo(
+            (points[index - 1].x + item.x) / 2, points[index - 1].y,
+            (points[index - 1].x + item.x) / 2, item.y,
+            item.x, item.y
+        )
+    } else {
+        if (if (cubeEndCondition)
+                shouldDrawQuadEnd(currentPointDyDx, prevPointDyDx, nextPointDyDx)
+            else
+                index == points.size - 1
+        ) {
+            quadraticBezierTo(
+                points[index - 1].x,
+                points[index - 1].y,
+                item.x, item.y
+            )
+        } else {
+            quadraticBezierTo(
+                points[index - 1].x,
+                points[index - 1].y,
+                (points[index - 1].x + item.x) / 2,
+                (points[index - 1].y + item.y) / 2
+            )
         }
     }
 }
