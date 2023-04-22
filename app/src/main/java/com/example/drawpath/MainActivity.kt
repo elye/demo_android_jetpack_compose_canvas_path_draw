@@ -19,11 +19,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.drawpath.MainDestinations.DRAWARCDIALOGSCREEN
 import com.example.drawpath.MainDestinations.DRAWCPOINTSSCREEN
 import com.example.drawpath.MainDestinations.DRAWCUBICEXPLAINSCREEN
 import com.example.drawpath.MainDestinations.DRAWCUBICSCREEN
-import com.example.drawpath.MainDestinations.DRAWPATHMOVETOSCREEN
-import com.example.drawpath.MainDestinations.DRAWPATHSCREEN
+import com.example.drawpath.MainDestinations.DRAWARCMOVETOSCREEN
+import com.example.drawpath.MainDestinations.DRAWARCSCREEN
 import com.example.drawpath.MainDestinations.DRAWQUADEXPLAINSCREEN
 import com.example.drawpath.MainDestinations.DRAWQUADSCREEN
 import com.example.drawpath.MainDestinations.MAINSCREEN
@@ -48,8 +49,9 @@ class MainActivity : ComponentActivity() {
 
 object MainDestinations {
     const val MAINSCREEN = "mainscreen"
-    const val DRAWPATHSCREEN = "drawpathscreen"
-    const val DRAWPATHMOVETOSCREEN = "drawpathmovetoscreen"
+    const val DRAWARCDIALOGSCREEN = "drawarcdialogscreen"
+    const val DRAWARCSCREEN = "drawarcscreen"
+    const val DRAWARCMOVETOSCREEN = "drawarcmovetoscreen"
     const val DRAWQUADSCREEN = "drawquadscreen"
     const val DRAWQUADEXPLAINSCREEN = "drawquadexplainscreen"
     const val DRAWCUBICSCREEN = "drawcubicscreen"
@@ -68,10 +70,13 @@ fun NavGraph(startDestination: String = MAINSCREEN) {
         composable(MAINSCREEN) {
             MainScreen(actions)
         }
-        composable(DRAWPATHSCREEN) {
+        composable(DRAWARCDIALOGSCREEN) {
+            DrawPathArcDialog()
+        }
+        composable(DRAWARCSCREEN) {
             DrawPathArc()
         }
-        composable(DRAWPATHMOVETOSCREEN) {
+        composable(DRAWARCMOVETOSCREEN) {
             DrawPathArcMoveTo()
         }
         composable(DRAWQUADSCREEN) {
@@ -96,11 +101,14 @@ class MainActions(navController: NavHostController) {
     val mainScreen: () -> Unit = {
         navController.navigate(MAINSCREEN)
     }
-    val drawPathScreen: () -> Unit = {
-        navController.navigate(DRAWPATHSCREEN)
+    val drawArcDialogScreen: () -> Unit = {
+        navController.navigate(DRAWARCDIALOGSCREEN)
     }
-    val drawPathMoveToScreen: () -> Unit = {
-        navController.navigate(DRAWPATHMOVETOSCREEN)
+    val drawArcScreen: () -> Unit = {
+        navController.navigate(DRAWARCSCREEN)
+    }
+    val drawArcMoveToScreen: () -> Unit = {
+        navController.navigate(DRAWARCMOVETOSCREEN)
     }
     val drawPathQuadScreen: () -> Unit = {
         navController.navigate(DRAWQUADSCREEN)
@@ -130,11 +138,15 @@ fun MainScreen(actions: MainActions) {
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             MyButton(
-                onClick = { actions.drawPathScreen() },
+                onClick = { actions.drawArcDialogScreen() },
+                title = "Draw Arc Dialog"
+            )
+            MyButton(
+                onClick = { actions.drawArcScreen() },
                 title = "Draw Arc"
             )
             MyButton(
-                onClick = { actions.drawPathMoveToScreen() },
+                onClick = { actions.drawArcMoveToScreen() },
                 title = "Draw Arc Move To"
             )
             MyButton(
