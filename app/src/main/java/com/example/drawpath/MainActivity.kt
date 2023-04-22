@@ -131,11 +131,11 @@ fun MainScreen(actions: MainActions) {
         Column(modifier = Modifier.padding(8.dp)) {
             MyButton(
                 onClick = { actions.drawPathScreen() },
-                title = "Draw Path"
+                title = "Draw Arc"
             )
             MyButton(
                 onClick = { actions.drawPathMoveToScreen() },
-                title = "Draw Path Move To"
+                title = "Draw Arc Move To"
             )
             MyButton(
                 onClick = { actions.drawPathQuadScreen() },
