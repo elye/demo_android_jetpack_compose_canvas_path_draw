@@ -66,7 +66,9 @@ fun DrawPointsLine() {
                             moveTo(item.x, item.y)
                         } else {
                             when (selectedOption) {
-                                LINE -> lineTo(item.x, item.y)
+                                LINE -> {
+                                    lineTo(item.x, item.y)
+                                }
                                 QUAD -> {
                                     if (index == points.size - 1) {
                                         quadraticBezierTo(
@@ -91,26 +93,14 @@ fun DrawPointsLine() {
                                     )
                                 }
                                 HYBRID -> {
-                                    var prevPointDyDx: Float? = null
-                                    var nextPointDyDx: Float? = null
-                                    val currentPointDyDx = dydx(
-                                        points[index - 1].x, points[index - 1].y,
-                                        item.x, item.y
-                                    )
+                                    val prevPointDyDx: Float?
+                                    val nextPointDyDx: Float?
+                                    val currentPointDyDx: Float
 
-                                    if (index > 1) {
-                                        prevPointDyDx = dydx(
-                                            points[index - 1].x, points[index - 1].y,
-                                            points[index - 2].x, points[index - 2].y,
-                                        )
-                                    }
-
-                                    if (index < points.size - 1) {
-                                        nextPointDyDx = dydx(
-                                            points[index + 1].x, points[index + 1].y,
-                                            item.x, item.y
-                                        )
-                                    }
+                                    val triple = extractDyDx(points, index, item)
+                                    currentPointDyDx = triple.first
+                                    nextPointDyDx = triple.second
+                                    prevPointDyDx = triple.third
 
                                     if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
                                         cubicTo(
@@ -119,7 +109,7 @@ fun DrawPointsLine() {
                                             item.x, item.y
                                         )
                                     } else {
-                                        if (index == points.size - 1) {
+                                        if (shouldDrawQuadEnd(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
                                             quadraticBezierTo(
                                                 points[index - 1].x,
                                                 points[index - 1].y,
@@ -206,6 +196,34 @@ fun DrawPointsLine() {
     }
 }
 
+private fun extractDyDx(
+    points: List<Offset>,
+    index: Int,
+    item: Offset,
+): Triple<Float, Float?, Float?> {
+    var prevPointDyDx1 : Float? = null
+    var nextPointDyDx1 : Float? = null
+    val currentPointDyDx1 = dydx(
+        points[index - 1].x, points[index - 1].y,
+        item.x, item.y
+    )
+
+    if (index > 1) {
+        prevPointDyDx1 = dydx(
+            points[index - 1].x, points[index - 1].y,
+            points[index - 2].x, points[index - 2].y,
+        )
+    }
+
+    if (index < points.size - 1) {
+        nextPointDyDx1 = dydx(
+            points[index + 1].x, points[index + 1].y,
+            item.x, item.y
+        )
+    }
+    return Triple(currentPointDyDx1, nextPointDyDx1, prevPointDyDx1)
+}
+
 fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx: Float?): Boolean {
     return if (prevPointDyDx == null) {
         if (nextPointDyDx == null) {
@@ -218,6 +236,17 @@ fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx
     } else {
         (currentPointDyDx > 0 && prevPointDyDx < 0 && nextPointDyDx < 0) ||
                 (currentPointDyDx < 0 && prevPointDyDx > 0 && nextPointDyDx > 0)
+    }
+}
+
+fun shouldDrawQuadEnd(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx: Float?): Boolean {
+    return if (prevPointDyDx == null) {
+        nextPointDyDx == null
+    } else if (nextPointDyDx == null) {
+        (currentPointDyDx > 0 && prevPointDyDx > 0) || (currentPointDyDx < 0 && prevPointDyDx < 0)
+    } else {
+        (currentPointDyDx > 0 && prevPointDyDx > 0 && nextPointDyDx < 0) ||
+                (currentPointDyDx < 0 && prevPointDyDx < 0 && nextPointDyDx > 0)
     }
 }
 
