@@ -203,18 +203,18 @@ private fun setupArc(
     }
     Row {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Start Angle: $startAngle")
+            Text(text = "Start Angle: ${startAngle.roundToInt()}")
             Slider(value = startAngle,
-                valueRange = 0f..360f,
+                valueRange = -360f..360f,
                 onValueChange = {
                     startAngle = it
                 }
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Sweep Angle: $sweepAngle")
+            Text(text = "Sweep Angle: ${sweepAngle.roundToInt()}")
             Slider(value = sweepAngle,
-                valueRange = 0f..360f,
+                valueRange = -360f..360f,
                 onValueChange = {
                     sweepAngle = it
                 }

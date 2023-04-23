@@ -95,14 +95,14 @@ fun DrawPathArc() {
         )
         Text(text = "Start Angle: $startAngle")
         Slider(value = startAngle,
-            valueRange = 0f..360f,
+            valueRange = -360f..360f,
             onValueChange = {
                 startAngle = it
             }
         )
         Text(text = "Sweep Angle: $sweepAngle")
         Slider(value = sweepAngle,
-            valueRange = 0f..360f,
+            valueRange = -360f..360f,
             onValueChange = {
                 sweepAngle = it
             }
