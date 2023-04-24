@@ -5,10 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.RadioButton
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -18,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -28,13 +26,14 @@ fun DrawPointsLine() {
     val LINE = "Line"
     val QUAD = "Quad"
     val CUBIC = "Cubic"
-    val HYBRID = "Hybrid"
-    val HYBRIDEND = "Hybrid End"
+    val HYBRID = "Hybrid (Quad + Cubic)"
+    val CUBICADVANCED = "Cubic Advanced"
     val height = 200.dp
-    val radioOptions = listOf(LINE, QUAD, CUBIC, HYBRID, HYBRIDEND)
+    val radioOptions = listOf(LINE, QUAD, CUBIC, HYBRID, CUBICADVANCED)
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(radioOptions[1]) }
     var points by remember { mutableStateOf(listOf<Offset>()) }
     var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
+    var showAnchorPoints by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -70,33 +69,31 @@ fun DrawPointsLine() {
                                     lineTo(item.x, item.y)
                                 }
                                 QUAD -> {
-                                    if (index == points.size - 1) {
-                                        quadraticBezierTo(
-                                            points[index - 1].x,
-                                            points[index - 1].y,
-                                            item.x, item.y
-                                        )
-                                    } else {
-                                        quadraticBezierTo(
-                                            points[index - 1].x,
-                                            points[index - 1].y,
-                                            (points[index - 1].x + item.x) / 2,
-                                            (points[index - 1].y + item.y) / 2
-                                        )
-                                    }
+                                    drawQuad(points, index, item, showAnchorPoints,  this)
                                 }
                                 CUBIC -> {
-                                    cubicTo(
-                                        (points[index - 1].x + item.x) / 2, points[index - 1].y,
-                                        (points[index - 1].x + item.x) / 2, item.y,
-                                        item.x, item.y
-                                    )
+                                    drawSimpleCubic(points, index, item, showAnchorPoints, this)
                                 }
                                 HYBRID -> {
-                                    hybridDraw(points, index, item, false)
+                                    val triple = extractDyDx(points, index, item)
+                                    val currentPointDyDx = triple.first
+                                    val nextPointDyDx = triple.second
+                                    val prevPointDyDx = triple.third
+
+                                    if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
+                                        drawSimpleCubic(points, index, item, showAnchorPoints, this)
+                                    } else {
+                                        drawQuad(points, index, item, showAnchorPoints,  this)
+                                    }
                                 }
-                                HYBRIDEND -> {
-                                    hybridDraw(points, index, item, true)
+                                CUBICADVANCED -> {
+                                    drawAdvancedCubic(
+                                        points,
+                                        index,
+                                        item,
+                                        showAnchorPoints,
+                                        this
+                                    )
                                 }
                             }
                         }
@@ -166,50 +163,133 @@ fun DrawPointsLine() {
                 }
             }
         }
+        Row(verticalAlignment = CenterVertically) {
+            Spacer(Modifier.weight(1f))
+            Switch(checked = showAnchorPoints, onCheckedChange = { showAnchorPoints = it })
+            Text(text = "Show Anchor Points")
+            Spacer(Modifier.weight(1f))
+        }
+
     }
 }
 
-private fun Path.hybridDraw(
+private fun DrawScope.drawAdvancedCubic(
     points: List<Offset>,
     index: Int,
     item: Offset,
-    cubeEndCondition: Boolean
+    showAnchorPoints: Boolean,
+    path: Path
 ) {
-    val prevPointDyDx: Float?
-    val nextPointDyDx: Float?
-    val currentPointDyDx: Float
-
     val triple = extractDyDx(points, index, item)
-    currentPointDyDx = triple.first
-    nextPointDyDx = triple.second
-    prevPointDyDx = triple.third
+    val currentPointDyDx = triple.first
+    val nextPointDyDx = triple.second
+    val prevPointDyDx = triple.third
 
-    if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
-        cubicTo(
-            (points[index - 1].x + item.x) / 2, points[index - 1].y,
-            (points[index - 1].x + item.x) / 2, item.y,
-            item.x, item.y
+    val prevX = points[index - 1].x
+    val prevY = points[index - 1].y
+    val x1 = (prevX * 2 + item.x) / 3
+    val m1 = ((prevPointDyDx ?: currentPointDyDx) + currentPointDyDx) / 2
+    val c1 = prevY - m1 * prevX
+    val y1 = m1 * x1 + c1
+
+    val x2 = (prevX + item.x * 2) / 3
+    val m2 = ((nextPointDyDx ?: currentPointDyDx) + currentPointDyDx) / 2
+    val c2 = item.y - m2 * item.x
+    val y2 = m2 * x2 + c2
+
+    if (showAnchorPoints) {
+        drawPoints(
+            listOf(Offset(x1, y1)),
+            PointMode.Points,
+            Color.Green,
+            strokeWidth = 4.dp.toPx(),
+            cap = StrokeCap.Round
         )
-    } else {
-        if (if (cubeEndCondition)
-                shouldDrawQuadEnd(currentPointDyDx, prevPointDyDx, nextPointDyDx)
-            else
-                index == points.size - 1
-        ) {
-            quadraticBezierTo(
-                points[index - 1].x,
-                points[index - 1].y,
-                item.x, item.y
-            )
-        } else {
-            quadraticBezierTo(
-                points[index - 1].x,
-                points[index - 1].y,
-                (points[index - 1].x + item.x) / 2,
-                (points[index - 1].y + item.y) / 2
-            )
-        }
+
+        drawPoints(
+            listOf(Offset(x2, y2)),
+            PointMode.Points,
+            Color.Blue,
+            strokeWidth = 4.dp.toPx(),
+            cap = StrokeCap.Round
+        )
     }
+
+    path.cubicTo(
+        x1, y1,
+        x2, y2,
+        item.x, item.y
+    )
+}
+
+private fun DrawScope.drawSimpleCubic(
+    points: List<Offset>,
+    index: Int,
+    item: Offset,
+    showAnchorPoints: Boolean,
+    path: Path
+) {
+    val prevX = points[index - 1].x
+    val prevY = points[index - 1].y
+    val middleX = (prevX + item.x) / 2
+
+    if (showAnchorPoints) {
+        drawPoints(
+            listOf(Offset(middleX, prevY)),
+            PointMode.Points,
+            Color.Green,
+            strokeWidth = 4.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+
+        drawPoints(
+            listOf(Offset(middleX, item.y)),
+            PointMode.Points,
+            Color.Blue,
+            strokeWidth = 4.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+    }
+
+    path.cubicTo(
+        middleX, prevY,
+        middleX, item.y,
+        item.x, item.y
+    )
+}
+
+private fun DrawScope.drawQuad(
+    points: List<Offset>,
+    index: Int,
+    item: Offset,
+    showAnchorPoints: Boolean,
+    path: Path
+) {
+    val prevX = points[index - 1].x
+    val prevY = points[index - 1].y
+    val plotX: Float
+    val plotY: Float
+    if (index == points.size - 1) {
+        plotX = item.x
+        plotY = item.y
+    } else {
+        plotX = (prevX + item.x) / 2
+        plotY = (prevY + item.y) / 2
+    }
+
+    if (showAnchorPoints) {
+        drawPoints(
+            listOf(Offset(plotX, plotY)),
+            PointMode.Points,
+            Color.Blue,
+            strokeWidth = 4.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+    }
+    path.quadraticBezierTo(
+        prevX, prevY,
+        plotX, plotY
+    )
 }
 
 private fun extractDyDx(
@@ -255,17 +335,6 @@ fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx
     }
 }
 
-fun shouldDrawQuadEnd(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx: Float?): Boolean {
-    return if (prevPointDyDx == null) {
-        nextPointDyDx == null
-    } else if (nextPointDyDx == null) {
-        (currentPointDyDx > 0 && prevPointDyDx > 0) || (currentPointDyDx < 0 && prevPointDyDx < 0)
-    } else {
-        (currentPointDyDx > 0 && prevPointDyDx > 0 && nextPointDyDx < 0) ||
-                (currentPointDyDx < 0 && prevPointDyDx < 0 && nextPointDyDx > 0)
-    }
-}
-
 private fun dydx(x1: Float, y1: Float, x2: Float, y2: Float): Float {
-    return (x2 - x1) / (y2 - y1)
+    return (y2 - y1) / (x2 - x1)
 }
