@@ -36,7 +36,6 @@ fun DrawPathCubic() {
 
     Column(modifier = Modifier.padding(16.dp)) {
 
-        Spacer(modifier = Modifier.height(16.dp))
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()

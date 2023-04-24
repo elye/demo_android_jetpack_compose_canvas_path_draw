@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 @Composable
 fun DrawPointsLine() {
@@ -35,10 +37,10 @@ fun DrawPointsLine() {
     var points by remember { mutableStateOf(listOf<Offset>()) }
     var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
     var showAnchorPoints by remember { mutableStateOf(false) }
+    var advancedMiddleSlope by remember { mutableStateOf(false) }
+    var weightedMiddleX by remember { mutableStateOf(2f) }
 
     Column(modifier = Modifier.padding(16.dp)) {
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         val drawModifier = Modifier
             .fillMaxWidth()
@@ -70,7 +72,7 @@ fun DrawPointsLine() {
                                     lineTo(item.x, item.y)
                                 }
                                 QUAD -> {
-                                    drawQuad(points, index, item, showAnchorPoints,  this)
+                                    drawQuad(points, index, item, showAnchorPoints, this)
                                 }
                                 CUBIC -> {
                                     drawSimpleCubic(points, index, item, showAnchorPoints, this)
@@ -81,10 +83,15 @@ fun DrawPointsLine() {
                                     val nextPointDyDx = triple.second
                                     val prevPointDyDx = triple.third
 
-                                    if (shouldDrawCube(currentPointDyDx, prevPointDyDx, nextPointDyDx)) {
+                                    if (shouldDrawCube(
+                                            currentPointDyDx,
+                                            prevPointDyDx,
+                                            nextPointDyDx
+                                        )
+                                    ) {
                                         drawSimpleCubic(points, index, item, showAnchorPoints, this)
                                     } else {
-                                        drawQuad(points, index, item, showAnchorPoints,  this)
+                                        drawQuad(points, index, item, showAnchorPoints, this)
                                     }
                                 }
                                 CUBICADVANCED -> {
@@ -93,6 +100,8 @@ fun DrawPointsLine() {
                                         index,
                                         item,
                                         showAnchorPoints,
+                                        advancedMiddleSlope,
+                                        weightedMiddleX,
                                         this
                                     )
                                 }
@@ -159,12 +168,26 @@ fun DrawPointsLine() {
             }
         }
         Row(verticalAlignment = CenterVertically) {
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.width(16.dp))
             Switch(checked = showAnchorPoints, onCheckedChange = { showAnchorPoints = it })
             Text(text = "Show Anchor Points")
+        }
+        Row(verticalAlignment = CenterVertically) {
+            Spacer(Modifier.width(16.dp))
+            Switch(checked = advancedMiddleSlope, onCheckedChange = { advancedMiddleSlope = it })
+            Text(text = "Advanced Middle Slope (Cubic Advanced)")
             Spacer(Modifier.weight(1f))
         }
-
+        Column(Modifier.padding(16.dp)) {
+            Text(text = "Weighted Middle X (Cubic Advanced): ${weightedMiddleX.roundToInt()}")
+            Slider(value = weightedMiddleX,
+                valueRange = 1f..3f,
+                steps = 1,
+                onValueChange = {
+                    weightedMiddleX = it
+                }
+            )
+        }
     }
 }
 
@@ -173,6 +196,8 @@ private fun DrawScope.drawAdvancedCubic(
     index: Int,
     item: Offset,
     showAnchorPoints: Boolean,
+    advancedMiddleSlope: Boolean,
+    weightedMiddleX: Float,
     path: Path
 ) {
     val triple = extractDyDx(points, index, item)
@@ -182,13 +207,13 @@ private fun DrawScope.drawAdvancedCubic(
 
     val prevX = points[index - 1].x
     val prevY = points[index - 1].y
-    val x1 = (prevX * 2 + item.x) / 3
-    val m1 = ((prevPointDyDx ?: currentPointDyDx) + currentPointDyDx) / 2
+    val x1 = (prevX * weightedMiddleX + item.x) / (weightedMiddleX + 1)
+    val m1 = calculateMiddleSlope(prevPointDyDx, currentPointDyDx, advancedMiddleSlope)
     val c1 = prevY - m1 * prevX
     val y1 = m1 * x1 + c1
 
-    val x2 = (prevX + item.x * 2) / 3
-    val m2 = ((nextPointDyDx ?: currentPointDyDx) + currentPointDyDx) / 2
+    val x2 = (prevX + item.x * weightedMiddleX) / (weightedMiddleX + 1)
+    val m2 = calculateMiddleSlope(nextPointDyDx, currentPointDyDx, advancedMiddleSlope)
     val c2 = item.y - m2 * item.x
     val y2 = m2 * x2 + c2
 
@@ -202,6 +227,23 @@ private fun DrawScope.drawAdvancedCubic(
         x2, y2,
         item.x, item.y
     )
+}
+
+private fun calculateMiddleSlope(
+    referenceDyDx: Float?,
+    currentPointDyDx: Float,
+    advancedMiddleSlope: Boolean
+): Float {
+
+    if (referenceDyDx == null) return currentPointDyDx
+
+    if (!advancedMiddleSlope) return (referenceDyDx + currentPointDyDx) / 2
+
+    val denominator =
+        1 - referenceDyDx * currentPointDyDx + sqrt((1 + referenceDyDx * referenceDyDx) * (1 + currentPointDyDx * currentPointDyDx))
+    val numerator = referenceDyDx + currentPointDyDx
+
+    return numerator / denominator
 }
 
 private fun DrawScope.drawSimpleCubic(
@@ -274,8 +316,8 @@ private fun extractDyDx(
     index: Int,
     item: Offset,
 ): Triple<Float, Float?, Float?> {
-    var prevPointDyDx1 : Float? = null
-    var nextPointDyDx1 : Float? = null
+    var prevPointDyDx1: Float? = null
+    var nextPointDyDx1: Float? = null
     val currentPointDyDx1 = dydx(
         points[index - 1].x, points[index - 1].y,
         item.x, item.y
