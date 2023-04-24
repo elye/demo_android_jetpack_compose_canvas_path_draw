@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -101,13 +102,7 @@ fun DrawPointsLine() {
                 },
                 Color.Black, style = Stroke(2.dp.value)
             )
-            drawPoints(
-                points,
-                PointMode.Points,
-                Color.Red,
-                strokeWidth = 6.dp.toPx(),
-                cap = StrokeCap.Round
-            )
+            drawPoints(points, Color.Red, 6.dp)
         }
 
         Row {
@@ -198,21 +193,8 @@ private fun DrawScope.drawAdvancedCubic(
     val y2 = m2 * x2 + c2
 
     if (showAnchorPoints) {
-        drawPoints(
-            listOf(Offset(x1, y1)),
-            PointMode.Points,
-            Color.Green,
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-
-        drawPoints(
-            listOf(Offset(x2, y2)),
-            PointMode.Points,
-            Color.Blue,
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
+        drawPoints(listOf(Offset(x1, y1)), Color.Green, 4.dp)
+        drawPoints(listOf(Offset(x2, y2)), Color.Blue, 4.dp)
     }
 
     path.cubicTo(
@@ -234,27 +216,28 @@ private fun DrawScope.drawSimpleCubic(
     val middleX = (prevX + item.x) / 2
 
     if (showAnchorPoints) {
-        drawPoints(
-            listOf(Offset(middleX, prevY)),
-            PointMode.Points,
-            Color.Green,
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-
-        drawPoints(
-            listOf(Offset(middleX, item.y)),
-            PointMode.Points,
-            Color.Blue,
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
+        drawPoints(listOf(Offset(middleX, prevY)), Color.Green, 4.dp)
+        drawPoints(listOf(Offset(middleX, item.y)), Color.Blue, 4.dp)
     }
 
     path.cubicTo(
         middleX, prevY,
         middleX, item.y,
         item.x, item.y
+    )
+}
+
+private fun DrawScope.drawPoints(
+    points: List<Offset>,
+    color: Color,
+    strokeWidth: Dp
+) {
+    drawPoints(
+        points,
+        PointMode.Points,
+        color,
+        strokeWidth = strokeWidth.toPx(),
+        cap = StrokeCap.Round
     )
 }
 
@@ -278,13 +261,7 @@ private fun DrawScope.drawQuad(
     }
 
     if (showAnchorPoints) {
-        drawPoints(
-            listOf(Offset(plotX, plotY)),
-            PointMode.Points,
-            Color.Blue,
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
+        drawPoints(listOf(Offset(plotX, plotY)), Color.Blue, 4.dp)
     }
     path.quadraticBezierTo(
         prevX, prevY,
