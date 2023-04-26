@@ -37,7 +37,7 @@ fun DrawPointsLine() {
     var points by remember { mutableStateOf(listOf<Offset>()) }
     var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
     var showAnchorPoints by remember { mutableStateOf(false) }
-    var advancedMiddleSlope by remember { mutableStateOf(false) }
+    var advancedMiddleSlope by remember { mutableStateOf(true) }
     var weightedMiddleX by remember { mutableStateOf(2f) }
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -84,9 +84,9 @@ fun DrawPointsLine() {
                                     val prevPointDyDx = triple.third
 
                                     if (shouldDrawCube(
-                                            currentPointDyDx,
-                                            prevPointDyDx,
-                                            nextPointDyDx
+                                            currentPointDyDx.slope,
+                                            prevPointDyDx?.slope,
+                                            nextPointDyDx?.slope
                                         )
                                     ) {
                                         drawSimpleCubic(points, index, item, showAnchorPoints, this)
@@ -207,15 +207,11 @@ private fun DrawScope.drawAdvancedCubic(
 
     val prevX = points[index - 1].x
     val prevY = points[index - 1].y
-    val x1 = (prevX * weightedMiddleX + item.x) / (weightedMiddleX + 1)
-    val m1 = calculateMiddleSlope(prevPointDyDx, currentPointDyDx, advancedMiddleSlope)
-    val c1 = prevY - m1 * prevX
-    val y1 = m1 * x1 + c1
+    val (x1, y1) = calculateMiddleCoordinate(prevPointDyDx, currentPointDyDx, advancedMiddleSlope,
+        prevX, prevY, item.x, item.y, weightedMiddleX)
+    val (x2, y2) = calculateMiddleCoordinate(nextPointDyDx, currentPointDyDx, advancedMiddleSlope,
+        item.x, item.y, prevX, prevY, weightedMiddleX)
 
-    val x2 = (prevX + item.x * weightedMiddleX) / (weightedMiddleX + 1)
-    val m2 = calculateMiddleSlope(nextPointDyDx, currentPointDyDx, advancedMiddleSlope)
-    val c2 = item.y - m2 * item.x
-    val y2 = m2 * x2 + c2
 
     if (showAnchorPoints) {
         drawPoints(listOf(Offset(x1, y1)), Color.Green, 4.dp)
@@ -229,6 +225,33 @@ private fun DrawScope.drawAdvancedCubic(
     )
 }
 
+private fun calculateMiddleCoordinate(
+    referenceDyDx: SlopeDirection?,
+    currentPointDyDx: SlopeDirection,
+    advancedMiddleSlope: Boolean,
+    focusX: Float,
+    focusY: Float,
+    referenceX: Float,
+    referenceY: Float,
+    weightedMiddleX: Float
+) : Pair<Float, Float> {
+    val middleSlope = calculateMiddleSlope(referenceDyDx?.slope, currentPointDyDx.slope, advancedMiddleSlope)
+
+    val shouldInverse = if (referenceDyDx?.forward == null) false
+    else (referenceDyDx.forward xor currentPointDyDx.forward)
+
+    return if (shouldInverse) {
+        val inverseSlope = -1/avoidZero(middleSlope)
+        val middleY = (focusY * weightedMiddleX + referenceY) / (weightedMiddleX + 1)
+        val c = focusY - inverseSlope * focusX
+        Pair((middleY - c)/inverseSlope, middleY)
+    } else {
+        val middleX = (focusX * weightedMiddleX + referenceX) / (weightedMiddleX + 1)
+        val c = focusY - middleSlope * focusX
+        Pair(middleX, middleSlope * middleX + c)
+    }
+}
+
 private fun calculateMiddleSlope(
     referenceDyDx: Float?,
     currentPointDyDx: Float,
@@ -237,13 +260,21 @@ private fun calculateMiddleSlope(
 
     if (referenceDyDx == null) return currentPointDyDx
 
-    if (!advancedMiddleSlope) return (referenceDyDx + currentPointDyDx) / 2
+    if (!advancedMiddleSlope) {
+        return (referenceDyDx + currentPointDyDx) / 2
+    }
 
     val denominator =
-        1 - referenceDyDx * currentPointDyDx + sqrt((1 + referenceDyDx * referenceDyDx) * (1 + currentPointDyDx * currentPointDyDx))
+        1 - referenceDyDx * currentPointDyDx + sqrt(
+            (1 + referenceDyDx * referenceDyDx) * (1 + currentPointDyDx * currentPointDyDx)
+        )
     val numerator = referenceDyDx + currentPointDyDx
 
-    return numerator / denominator
+    return numerator / avoidZero(denominator)
+}
+
+private fun avoidZero(value: Float): Float {
+    return if (value == 0f) 0.000000000000000000001f else value
 }
 
 private fun DrawScope.drawSimpleCubic(
@@ -315,29 +346,37 @@ private fun extractDyDx(
     points: List<Offset>,
     index: Int,
     item: Offset,
-): Triple<Float, Float?, Float?> {
-    var prevPointDyDx1: Float? = null
-    var nextPointDyDx1: Float? = null
-    val currentPointDyDx1 = dydx(
-        points[index - 1].x, points[index - 1].y,
-        item.x, item.y
+): Triple<SlopeDirection, SlopeDirection?, SlopeDirection?> {
+    var prevPointDyDx1: SlopeDirection? = null
+    var nextPointDyDx1: SlopeDirection? = null
+    val currentPointDyDx1 = SlopeDirection(
+        dydx(
+            points[index - 1].x, points[index - 1].y,
+            item.x, item.y
+        ), item.x - points[index - 1].x > 0
     )
 
     if (index > 1) {
-        prevPointDyDx1 = dydx(
-            points[index - 1].x, points[index - 1].y,
-            points[index - 2].x, points[index - 2].y,
+        prevPointDyDx1 = SlopeDirection(
+            dydx(
+                points[index - 1].x, points[index - 1].y,
+                points[index - 2].x, points[index - 2].y,
+            ), points[index - 1].x - points[index - 2].x > 0
         )
     }
 
     if (index < points.size - 1) {
-        nextPointDyDx1 = dydx(
-            points[index + 1].x, points[index + 1].y,
-            item.x, item.y
+        nextPointDyDx1 = SlopeDirection(
+            dydx(
+                points[index + 1].x, points[index + 1].y,
+                item.x, item.y
+            ), points[index + 1].x - item.x > 0
         )
     }
     return Triple(currentPointDyDx1, nextPointDyDx1, prevPointDyDx1)
 }
+
+data class SlopeDirection(val slope: Float, val forward: Boolean)
 
 fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx: Float?): Boolean {
     return if (prevPointDyDx == null) {
@@ -355,5 +394,7 @@ fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx
 }
 
 private fun dydx(x1: Float, y1: Float, x2: Float, y2: Float): Float {
-    return (y2 - y1) / (x2 - x1)
+    val dY = y2 - y1
+    val dX = avoidZero(x2 - x1)
+    return dY / dX
 }
