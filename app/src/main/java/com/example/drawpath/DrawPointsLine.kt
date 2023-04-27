@@ -1,6 +1,5 @@
 package com.example.drawpath
 
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -21,7 +20,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.*
+import kotlin.math.PI
+import kotlin.math.atan
+import kotlin.math.tan
 
 @Composable
 fun DrawPointsLine() {
@@ -236,17 +237,11 @@ private fun calculateMiddleCoordinate(
         val middleY = (focusY * weightedMiddleX + referenceY) / (weightedMiddleX + 1)
         val c = focusY - inverseSlope * focusX
         val middleX = (middleY - c)/inverseSlope
-        Log.d("Elisha", "Inverse: $middleX, $middleY")
-        Log.d("Elisha", "Focus: $focusX, $focusY")
-        Log.d("Elisha", "Reference: $referenceX, $referenceY")
         Pair(middleX, middleY)
     } else {
         val middleX = (focusX * weightedMiddleX + referenceX) / (weightedMiddleX + 1)
         val c = focusY - middleSlope * focusX
         val middleY = middleSlope * middleX + c
-        Log.d("Elisha", "Normal: $middleX, $middleY")
-        Log.d("Elisha", "Focus: $focusX, $focusY")
-        Log.d("Elisha", "Reference: $referenceX, $referenceY")
         Pair(middleX, middleY)
     }
 }
