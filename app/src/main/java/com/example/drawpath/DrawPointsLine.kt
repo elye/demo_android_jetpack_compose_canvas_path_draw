@@ -1,5 +1,6 @@
 package com.example.drawpath
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,8 +21,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
+import kotlin.math.*
 
 @Composable
 fun DrawPointsLine() {
@@ -37,8 +37,7 @@ fun DrawPointsLine() {
     var points by remember { mutableStateOf(listOf<Offset>()) }
     var nextPoints by remember { mutableStateOf(listOf<Offset>()) }
     var showAnchorPoints by remember { mutableStateOf(false) }
-    var advancedMiddleSlope by remember { mutableStateOf(true) }
-    var weightedMiddleX by remember { mutableStateOf(2f) }
+    var weightedMiddleX by remember { mutableStateOf(1f) }
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -100,7 +99,6 @@ fun DrawPointsLine() {
                                         index,
                                         item,
                                         showAnchorPoints,
-                                        advancedMiddleSlope,
                                         weightedMiddleX,
                                         this
                                     )
@@ -172,17 +170,10 @@ fun DrawPointsLine() {
             Switch(checked = showAnchorPoints, onCheckedChange = { showAnchorPoints = it })
             Text(text = "Show Anchor Points")
         }
-        Row(verticalAlignment = CenterVertically) {
-            Spacer(Modifier.width(16.dp))
-            Switch(checked = advancedMiddleSlope, onCheckedChange = { advancedMiddleSlope = it })
-            Text(text = "Advanced Middle Slope (Cubic Advanced)")
-            Spacer(Modifier.weight(1f))
-        }
         Column(Modifier.padding(16.dp)) {
-            Text(text = "Weighted Middle X (Cubic Advanced): ${weightedMiddleX.roundToInt()}")
+            Text(text = "Weighted Middle X (Cubic Advanced): ${weightedMiddleX.format(2)}")
             Slider(value = weightedMiddleX,
-                valueRange = 1f..3f,
-                steps = 1,
+                valueRange = 0f..3f,
                 onValueChange = {
                     weightedMiddleX = it
                 }
@@ -191,12 +182,13 @@ fun DrawPointsLine() {
     }
 }
 
+fun Float.format(digits: Int) = "%.${digits}f".format(this)
+
 private fun DrawScope.drawAdvancedCubic(
     points: List<Offset>,
     index: Int,
     item: Offset,
     showAnchorPoints: Boolean,
-    advancedMiddleSlope: Boolean,
     weightedMiddleX: Float,
     path: Path
 ) {
@@ -207,9 +199,9 @@ private fun DrawScope.drawAdvancedCubic(
 
     val prevX = points[index - 1].x
     val prevY = points[index - 1].y
-    val (x1, y1) = calculateMiddleCoordinate(prevPointDyDx, currentPointDyDx, advancedMiddleSlope,
+    val (x1, y1) = calculateMiddleCoordinate(prevPointDyDx, currentPointDyDx,
         prevX, prevY, item.x, item.y, weightedMiddleX)
-    val (x2, y2) = calculateMiddleCoordinate(nextPointDyDx, currentPointDyDx, advancedMiddleSlope,
+    val (x2, y2) = calculateMiddleCoordinate(nextPointDyDx, currentPointDyDx,
         item.x, item.y, prevX, prevY, weightedMiddleX)
 
 
@@ -228,53 +220,43 @@ private fun DrawScope.drawAdvancedCubic(
 private fun calculateMiddleCoordinate(
     referenceDyDx: SlopeDirection?,
     currentPointDyDx: SlopeDirection,
-    advancedMiddleSlope: Boolean,
     focusX: Float,
     focusY: Float,
     referenceX: Float,
     referenceY: Float,
     weightedMiddleX: Float
 ) : Pair<Float, Float> {
-    val middleSlope = calculateMiddleSlope(referenceDyDx?.slope, currentPointDyDx.slope, advancedMiddleSlope)
+    val middleSlope = calculateMiddleSlope(referenceDyDx?.slope, currentPointDyDx.slope)
 
     val shouldInverse = if (referenceDyDx?.forward == null) false
     else (referenceDyDx.forward xor currentPointDyDx.forward)
 
     return if (shouldInverse) {
-        val inverseSlope = -1/avoidZero(middleSlope)
+        val inverseSlope = tan(atan(middleSlope) + PI / 2f).toFloat()
         val middleY = (focusY * weightedMiddleX + referenceY) / (weightedMiddleX + 1)
         val c = focusY - inverseSlope * focusX
-        Pair((middleY - c)/inverseSlope, middleY)
+        val middleX = (middleY - c)/inverseSlope
+        Log.d("Elisha", "Inverse: $middleX, $middleY")
+        Log.d("Elisha", "Focus: $focusX, $focusY")
+        Log.d("Elisha", "Reference: $referenceX, $referenceY")
+        Pair(middleX, middleY)
     } else {
         val middleX = (focusX * weightedMiddleX + referenceX) / (weightedMiddleX + 1)
         val c = focusY - middleSlope * focusX
-        Pair(middleX, middleSlope * middleX + c)
+        val middleY = middleSlope * middleX + c
+        Log.d("Elisha", "Normal: $middleX, $middleY")
+        Log.d("Elisha", "Focus: $focusX, $focusY")
+        Log.d("Elisha", "Reference: $referenceX, $referenceY")
+        Pair(middleX, middleY)
     }
 }
 
 private fun calculateMiddleSlope(
     referenceDyDx: Float?,
     currentPointDyDx: Float,
-    advancedMiddleSlope: Boolean
 ): Float {
-
     if (referenceDyDx == null) return currentPointDyDx
-
-    if (!advancedMiddleSlope) {
-        return (referenceDyDx + currentPointDyDx) / 2
-    }
-
-    val denominator =
-        1 - referenceDyDx * currentPointDyDx + sqrt(
-            (1 + referenceDyDx * referenceDyDx) * (1 + currentPointDyDx * currentPointDyDx)
-        )
-    val numerator = referenceDyDx + currentPointDyDx
-
-    return numerator / avoidZero(denominator)
-}
-
-private fun avoidZero(value: Float): Float {
-    return if (value == 0f) 0.000000000000000000001f else value
+    return tan((atan(referenceDyDx) + atan(currentPointDyDx))/2)
 }
 
 private fun DrawScope.drawSimpleCubic(
@@ -395,6 +377,6 @@ fun shouldDrawCube(currentPointDyDx: Float, prevPointDyDx: Float?, nextPointDyDx
 
 private fun dydx(x1: Float, y1: Float, x2: Float, y2: Float): Float {
     val dY = y2 - y1
-    val dX = avoidZero(x2 - x1)
+    val dX = x2 - x1
     return dY / dX
 }
